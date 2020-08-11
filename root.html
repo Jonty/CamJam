@@ -1,0 +1,209 @@
+<html>
+    <head>
+        <title>CamJam</title>
+        <style type="text/css">
+            .video-container {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                width: 99%;
+                height: 99%; 
+                overflow: hidden;
+                z-index: -1;
+            }
+            .video-container video {
+                /* Make video to at least 100% wide and tall */
+                min-width: 99%; 
+                min-height: 99%; 
+                max-width: 99%; 
+                max-height: 99%; 
+
+                /* Setting width & height to auto prevents the browser from stretching or squishing the video */
+                width: auto;
+                height: auto;
+
+                /* Center the video */
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+            }
+
+            .button {
+                font-size: 200%;
+                padding: 1em;
+                font-weight: bold;
+                background-color: #4CAF50;
+                border-radius: 8px;
+                border: none;
+            }
+
+            .start {
+                padding-top: 25%;
+                text-align: center;
+            }
+
+            body {
+                font-family: Helvetica, Bitstream Vera Sans, sans-serif;
+                color: white;
+                background-color: black;
+            }
+
+            /* The Overlay (background) */
+            .overlay {
+                /* Height & width depends on how you want to reveal the overlay (see JS below) */   
+                height: 0%;
+                width: 100%;
+                position: fixed; /* Stay in place */
+                z-index: 10; /* Sit on top */
+                left: 0;
+                top: 0;
+                background-color: rgb(0,0,0); /* Black fallback color */
+                background-color: rgba(0,0,0, 0.95); /* Black w/opacity */
+                overflow-x: hidden; /* Disable horizontal scroll */
+                transition: 0.5s; /* 0.5 second transition effect to slide in or slide down the overlay (height or width, depending on reveal) */
+            }
+
+            /* Position the content inside the overlay */
+            .overlay-content {
+                position: relative;
+                top: 25%; /* 25% from the top */
+                text-align: center; /* Centered text/links */
+                margin-top: 30px; /* 30px top margin to avoid conflict with the close button on smaller screens */
+            }
+
+            a:hover {
+                text-decoration: underline;
+            }
+
+            a:visited {
+                text-decoration: none;
+            }
+
+            /* The navigation links inside the overlay */
+            .overlay a {
+                color: #008000;
+                text-decoration: none;
+            }
+
+            .overlay a:hover, .overlay a:focus {
+                color: #008000;
+                text-decoration: underline;
+            }
+
+            /* Position the close button (top right corner) */
+            .overlay .closebtn {
+                position: absolute;
+                top: 20px;
+                right: 45px;
+                font-size: 60px;
+            }
+
+            /* When the height of the screen is less than 450 pixels, change the font-size of the links and position the close button again, so they don't overlap */
+            @media screen and (max-height: 450px) {
+                .overlay a {font-size: 20px}
+                .overlay .closebtn {
+                    font-size: 40px;
+                    top: 15px;
+                    right: 35px;
+                }
+            }
+
+        </style>
+    </head>
+    <body>
+        <a onclick="openNav()" style="float: right;">about</a>
+
+        <div id="nav" class="overlay">
+            <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+            <div class="overlay-content">
+                <h1>CamJam</h1>
+                <p>This is a near-realtime view of London from over 900 <a href="https://tfl.gov.uk/info-for/open-data-users/">TFL</a> "<a href="https://www.tfljamcams.net/">JamCams</a>" scattered across the city</p>
+                <p>Cameras are randomly chosen, and you are not guaranteed to see every camera in the city</p>
+                <p>It was written by Jonty Wareing (<a href="https://twitter.com/jonty">@jonty</a> / <a href="http://jonty.co.uk">jonty.co.uk</a>), and the <a href="https://github.com/jonty/camjam">code is available</a></p>
+            </div>
+        </div>
+
+        <div class="video-container">
+            <video id='vid1' style='display: none'></video>
+            <video id='vid2' style='display: none'></video>
+        </div>
+
+        <div id="start" class="start">
+            <p>Press this button to see almost-live video<br>from over 900 TFL cameras across London</p>
+            <button id='button' class='button' onClick="javascript:start()">
+                ACTIVATE CAMERAS
+            </button>
+        </div>
+
+        <script>
+            vid1 = document.getElementById('vid1');
+            vid1.addEventListener('ended', nextVideo, false);
+            vid2 = document.getElementById('vid2');
+            vid2.addEventListener('ended', nextVideo, false);
+
+            var elements = [vid1, vid2];
+            var videos = [];
+            var played = [];
+
+            function nextVideo() {
+                // Swap videos
+                elements.unshift(elements.pop())
+                elements[0].style.display = 'block';
+                elements[1].style.display = 'none';
+                elements[0].play();
+
+                while (true) {
+                    video = videos.pop();
+                    if (played.find(function (e) { return e['Url'] == video['Url'] && e['Time'] == video['Time']})) {
+                        continue;
+                    } else {
+                        elements[1].src = video['Url'];
+                        elements[1].playbackRate = 4.0;
+
+                        played.unshift(video);
+                        played = played.slice(0,100);
+                        break;
+                    }
+                }
+            }
+
+            function start() {
+                // To shift into the foreground and background videos
+                nextVideo();
+                nextVideo();
+
+                go = document.getElementById('start')
+                go.style.display = 'none';
+            }
+
+            function fetchdata(){
+                var request = new XMLHttpRequest();
+                request.open('GET', '/latest_videos', true);
+
+                request.onload = function() {
+                    if (this.status == 200) {
+                        videos = JSON.parse(this.response);
+                    }
+                    setTimeout(fetchdata,10*1000);
+                };
+
+                request.onerror = function() {
+                    setTimeout(fetchdata,10*1000);
+                };
+
+                request.send();
+            }
+
+            function openNav() {
+                document.getElementById("nav").style.height = "100%";
+            }
+
+            function closeNav() {
+                document.getElementById("nav").style.height = "0%";
+            }
+
+            fetchdata();
+        </script>
+    </body>
+</html>
