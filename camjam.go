@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
@@ -38,13 +39,13 @@ func runUpdateWorker() {
 }
 
 func fetchLatestVideos() []Video {
-	s3svc := s3.New(session.New(), &aws.Config{Region: aws.String("eu-west-1")})
+	s3svc := s3.New(session.New(), &aws.Config{Region: aws.String("eu-west-1"), Credentials: credentials.AnonymousCredentials})
 	params := &s3.ListObjectsV2Input{
 		Bucket: aws.String("jamcams.tfl.gov.uk"),
 	}
 
 	var videos []Video
-	s3svc.ListObjectsV2Pages(params, func(page *s3.ListObjectsV2Output, lastPage bool) bool {
+	err := s3svc.ListObjectsV2Pages(params, func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 		for _, key := range page.Contents {
 			if strings.HasSuffix(*key.Key, ".mp4") {
 				baseUrl := "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/%s"
@@ -54,6 +55,10 @@ func fetchLatestVideos() []Video {
 		}
 		return true
 	})
+
+	if err != nil {
+		log.Fatal("Failed to fetch videos: %s", err)
+	}
 
 	sort.Slice(videos[:], func(i, j int) bool {
 		return videos[i].Time.After(videos[j].Time)
@@ -92,7 +97,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 func main() {
 	portApi, ok := os.LookupEnv("PORT")
 	if !ok || len(portApi) == 0 {
-		log.Panic("You must specify a PORT")
+		log.Panic("You must specify a :PORT")
 	}
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
@@ -102,7 +107,7 @@ func main() {
 	router.HandleFunc("/", handleRoot).Methods("GET")
 
 	s := &http.Server{
-		Addr:           fmt.Sprintf(":%s", portApi),
+		Addr:           fmt.Sprintf("%s", portApi),
 		Handler:        handlers.CompressHandler(router),
 		ReadTimeout:    60 * time.Second,
 		WriteTimeout:   60 * time.Second,
