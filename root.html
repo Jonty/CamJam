@@ -126,8 +126,8 @@
         </div>
 
         <div class="video-container">
-            <video id='vid1' style='display: none'></video>
-            <video id='vid2' style='display: none'></video>
+            <video id='vid1' style='display: none' muted=true></video>
+            <video id='vid2' style='display: none' muted=true></video>
         </div>
 
         <div id="start" class="start">
@@ -147,6 +147,11 @@
             var videos = [];
             var played = [];
 
+            var playbackRate = 4.0;
+            if (window.safari !== undefined) {
+                playbackRate = 2.0;
+            }
+
             function nextVideo() {
                 // Swap videos
                 elements.unshift(elements.pop())
@@ -160,7 +165,7 @@
                         continue;
                     } else {
                         elements[1].src = video['Url'];
-                        elements[1].playbackRate = 4.0;
+                        elements[1].playbackRate = playbackRate
 
                         played.unshift(video);
                         played = played.slice(0,100);
