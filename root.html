@@ -126,8 +126,8 @@
         </div>
 
         <div class="video-container">
-            <video id='vid1' style='display: none' muted='true' preload='true'></video>
-            <video id='vid2' style='display: none' muted='true' preload='true'></video>
+            <video id='vid1' muted='true' preload='true'></video>
+            <video id='vid2' muted='true' preload='true'></video>
         </div>
 
         <div id="start" class="start">
@@ -155,9 +155,9 @@
             function nextVideo() {
                 // Swap videos
                 elements.unshift(elements.pop())
-                elements[0].style.display = 'block';
-                elements[1].style.display = 'none';
                 elements[0].play();
+                elements[0].style.zIndex = 10;
+                elements[1].style.zIndex = -10;
 
                 while (true) {
                     video = videos.pop();
