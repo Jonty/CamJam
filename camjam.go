@@ -59,7 +59,7 @@ func fetchLatestVideos() []Video {
 	})
 
 	if err != nil {
-		log.Fatal("Failed to fetch videos: %s", err)
+		log.Fatalf("Failed to fetch videos: %s", err)
 	}
 
 	sort.Slice(videos[:], func(i, j int) bool {
