@@ -46,12 +46,21 @@
             .arrow {
                 padding-right: 0.8em;
             }
+            
+            .controls {
+                margin-top: 6px;
+                margin-right: 8px;
+            }
 
             body {
                 font-family: Helvetica, Bitstream Vera Sans, sans-serif;
                 color: white;
                 background-color: black;
                 overflow: hidden;
+                margin-left: 0px;
+                margin-right: 0px;
+                margin-top: 0px;
+                margin-bottom: 0px;
             }
 
             /* The Overlay (background) */
@@ -117,12 +126,12 @@
         </style>
     </head>
     <body>
-        <div style="float: right;">
+        <div style="float: right;" class="controls">
             <span id="controls" style="display: none;">
                 <a id="slowspeed" class="arrow" title="1x speed" onclick="slowspeed()">▶</a>
                 <a id="fastspeed" class="arrow" title="4x speed" onclick="fastspeed()">▶▶</a>
             </span>
-            <span style="padding-right: 0.5em"><a onclick="openNav()">about</a></span>
+            <span><a onclick="openNav()">about</a></span>
         </div>
 
         <div id="nav" class="overlay">
