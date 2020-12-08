@@ -33,12 +33,15 @@ func init() {
 
 func runUpdateWorker() {
 	for {
-		videoCache = fetchLatestVideos()
+		newCache, err := fetchLatestVideos()
+		if err == nil {
+			videoCache = newCache
+		}
 		time.Sleep(10 * time.Second)
 	}
 }
 
-func fetchLatestVideos() []Video {
+func fetchLatestVideos() ([]Video, error) {
 	s3svc := s3.New(session.New(), &aws.Config{Region: aws.String("eu-west-1"), Credentials: credentials.AnonymousCredentials})
 	params := &s3.ListObjectsV2Input{
 		Bucket: aws.String("jamcams.tfl.gov.uk"),
@@ -60,13 +63,14 @@ func fetchLatestVideos() []Video {
 
 	if err != nil {
 		log.Fatalf("Failed to fetch videos: %s", err)
+		return videos, err
 	}
 
 	sort.Slice(videos[:], func(i, j int) bool {
 		return videos[i].Time.After(videos[j].Time)
 	})
 
-	return videos
+	return videos, nil
 }
 
 func handleLatestVideos(w http.ResponseWriter, r *http.Request) {
