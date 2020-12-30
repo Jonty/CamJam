@@ -62,7 +62,7 @@ func fetchLatestVideos() ([]Video, error) {
 	})
 
 	if err != nil {
-		log.Fatalf("Failed to fetch videos: %s", err)
+		log.Printf("Failed to fetch videos: %s", err)
 		return videos, err
 	}
 
