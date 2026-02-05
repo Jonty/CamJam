@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 )
 
 type Video struct {
@@ -109,13 +108,14 @@ func main() {
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
-	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/latest_videos", handleLatestVideos).Methods("GET")
-	router.HandleFunc("/", handleRoot).Methods("GET")
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/latest_videos", handleLatestVideos)
+	mux.HandleFunc("/", handleRoot)
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf("%s", portApi),
-		Handler:        handlers.CompressHandler(router),
+		Handler:        handlers.CompressHandler(mux),
 		ReadTimeout:    60 * time.Second,
 		WriteTimeout:   60 * time.Second,
 		MaxHeaderBytes: 1 << 11,
