@@ -1,9 +1,9 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -86,18 +86,15 @@ func handleLatestVideos(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
+//go:embed root.html
+var rootHtml []byte
+var rootHtmlContentType = http.DetectContentType(rootHtml)
+
 func handleRoot(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
 
-	t, err := template.ParseFiles("root.html")
-	if err != nil {
-		log.Print("Template parsing error: ", err)
-	}
-
-	err = t.Execute(w, nil)
-	if err != nil {
-		log.Print("Template executing error: ", err)
-	}
+	r.Header.Add("Content-Type", rootHtmlContentType)
+	w.Write(rootHtml)
 }
 
 func main() {
