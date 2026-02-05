@@ -1,9 +1,9 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 )
 
 type Video struct {
@@ -26,18 +25,23 @@ type Video struct {
 }
 
 var videoCache = make([]Video, 0)
+var lastUserVideoListRequest = time.Now()
 
 func init() {
 	go runUpdateWorker()
 }
 
 func runUpdateWorker() {
+	t := time.NewTicker(time.Second * 10)
 	for {
 		newCache, err := fetchLatestVideos()
 		if err == nil {
 			videoCache = newCache
 		}
-		time.Sleep(10 * time.Second)
+		<-t.C
+		if time.Since(lastUserVideoListRequest) > time.Second*30 {
+			time.Sleep(time.Second * 60)
+		}
 	}
 }
 
@@ -53,7 +57,7 @@ func fetchLatestVideos() ([]Video, error) {
 			if strings.HasSuffix(*key.Key, ".mp4") {
 				baseUrl := "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/%s"
 				url := fmt.Sprintf(baseUrl, *key.Key)
-				if (*key.Size > 20000) {
+				if *key.Size > 20000 {
 					videos = append(videos, Video{url, *key.LastModified})
 				}
 			}
@@ -75,6 +79,7 @@ func fetchLatestVideos() ([]Video, error) {
 
 func handleLatestVideos(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+	lastUserVideoListRequest = time.Now()
 
 	js, err := json.Marshal(videoCache[:50])
 	if err != nil {
@@ -86,18 +91,15 @@ func handleLatestVideos(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 
+//go:embed root.html
+var rootHtml []byte
+var rootHtmlContentType = http.DetectContentType(rootHtml)
+
 func handleRoot(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
 
-	t, err := template.ParseFiles("root.html")
-	if err != nil {
-		log.Print("Template parsing error: ", err)
-	}
-
-	err = t.Execute(w, nil)
-	if err != nil {
-		log.Print("Template executing error: ", err)
-	}
+	r.Header.Add("Content-Type", rootHtmlContentType)
+	w.Write(rootHtml)
 }
 
 func main() {
@@ -108,13 +110,14 @@ func main() {
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
-	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/latest_videos", handleLatestVideos).Methods("GET")
-	router.HandleFunc("/", handleRoot).Methods("GET")
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/latest_videos", handleLatestVideos)
+	mux.HandleFunc("/", handleRoot)
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf("%s", portApi),
-		Handler:        handlers.CompressHandler(router),
+		Handler:        handlers.CompressHandler(mux),
 		ReadTimeout:    60 * time.Second,
 		WriteTimeout:   60 * time.Second,
 		MaxHeaderBytes: 1 << 11,
