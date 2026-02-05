@@ -53,7 +53,7 @@ func fetchLatestVideos() ([]Video, error) {
 			if strings.HasSuffix(*key.Key, ".mp4") {
 				baseUrl := "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/%s"
 				url := fmt.Sprintf(baseUrl, *key.Key)
-				if (*key.Size > 20000) {
+				if *key.Size > 20000 {
 					videos = append(videos, Video{url, *key.LastModified})
 				}
 			}
