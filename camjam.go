@@ -25,6 +25,7 @@ type Video struct {
 }
 
 var videoCache = make([]Video, 0)
+var lastUserVideoListRequest = time.Now()
 
 func init() {
 	go runUpdateWorker()
@@ -38,6 +39,9 @@ func runUpdateWorker() {
 			videoCache = newCache
 		}
 		<-t.C
+		if time.Since(lastUserVideoListRequest) > time.Second*30 {
+			time.Sleep(time.Second * 60)
+		}
 	}
 }
 
@@ -75,6 +79,7 @@ func fetchLatestVideos() ([]Video, error) {
 
 func handleLatestVideos(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
+	lastUserVideoListRequest = time.Now()
 
 	js, err := json.Marshal(videoCache[:50])
 	if err != nil {
