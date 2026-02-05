@@ -32,12 +32,13 @@ func init() {
 }
 
 func runUpdateWorker() {
+	t := time.NewTicker(time.Second * 10)
 	for {
 		newCache, err := fetchLatestVideos()
 		if err == nil {
 			videoCache = newCache
 		}
-		time.Sleep(10 * time.Second)
+		<-t.C
 	}
 }
 
